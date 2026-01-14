@@ -1,0 +1,37 @@
+{
+  "user_id": "user1",
+  "user_name": "User 1",
+  "created_date": "2026-01-14T21:38:45.688657",
+  "last_updated": "2026-01-14T21:38:45.688657",
+  "speaking_characteristics": {
+    "speaking_rate_wpm": 149.99999999999997,
+    "average_pause_duration": 0.1470597127739986,
+    "mean_pitch": 118.7715231398895,
+    "pitch_range": [
+      65.40639132514966,
+      163.86452094349724
+    ]
+  },
+  "emotion_profile": {
+    "dominant_emotion": "sad",
+    "confidence": 0.38,
+    "scores": {
+      "happy": 1,
+      "sad": 1.5,
+      "angry": 1,
+      "calm": 0.5,
+      "neutral": 0
+    },
+    "rules_triggered": [
+      "large_pitch_range",
+      "low_mean_pitch",
+      "low_energy"
+    ],
+    "features_used": {
+      "mean_pitch": 118.7715231398895,
+      "pitch_range": 98.45812961834758,
+      "speaking_rate_wpm": 149.99999999999997,
+      "avg_energy": -54.804013087337175
+    }
+  }
+}

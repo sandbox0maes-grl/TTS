@@ -52,3 +52,57 @@
 2026-01-02 01:11:56,893 - personalization_engine - INFO - Profile saved to profiles\user1_profile.json
 2026-01-02 01:11:56,921 - personalization_engine - INFO - VoiceProfile created for user: user1 (User 1)
 2026-01-02 01:11:56,921 - personalization_engine - INFO - Profile loaded for user user1
+2026-01-14 21:37:05,082 - audio_preprocessor - INFO - AudioPreprocessor initialized with sample rate: 22050
+2026-01-14 21:37:05,082 - feature_extractor - INFO - FeatureExtractor initialized with sample rate: 22050
+2026-01-14 21:37:05,085 - personalization_engine - INFO - PersonalizationEngine initialized
+2026-01-14 21:37:05,086 - personalization_engine - INFO - Creating voice profile for User 1 (user1)
+2026-01-14 21:37:05,086 - audio_preprocessor - INFO - Starting preprocessing pipeline for user_audio.mp3
+2026-01-14 21:38:00,607 - audio_preprocessor - INFO - Loaded audio: user_audio.mp3
+2026-01-14 21:38:00,611 - audio_preprocessor - INFO -   Duration: 39.85 seconds
+2026-01-14 21:38:00,612 - audio_preprocessor - INFO -   Sample rate: 22050 Hz
+2026-01-14 21:38:00,612 - audio_preprocessor - INFO -   Total samples: 878708
+2026-01-14 21:38:00,612 - audio_preprocessor - INFO - Step 1: Audio loaded
+2026-01-14 21:38:11,462 - audio_preprocessor - INFO - Silence removal: removed 62068 samples
+2026-01-14 21:38:11,462 - audio_preprocessor - INFO -   Original length: 878708 samples
+2026-01-14 21:38:11,462 - audio_preprocessor - INFO -   After trimming: 816640 samples
+2026-01-14 21:38:11,464 - audio_preprocessor - INFO - Step 2: Silence removed
+2026-01-14 21:38:11,468 - audio_preprocessor - INFO - Normalization: max amplitude before = 0.0543
+2026-01-14 21:38:11,473 - audio_preprocessor - INFO -   Max amplitude after = 1.0000
+2026-01-14 21:38:11,473 - audio_preprocessor - INFO - Step 3: Normalized
+2026-01-14 21:38:11,473 - audio_preprocessor - INFO - Noise profile detected from first 0.5 seconds
+2026-01-14 21:38:11,473 - audio_preprocessor - INFO -   Noise spectrum shape: (11025,)
+2026-01-14 21:38:11,473 - audio_preprocessor - INFO - Simple noise reduction applied
+2026-01-14 21:38:11,482 - audio_preprocessor - INFO - Step 4: Noise reduced
+2026-01-14 21:38:11,483 - audio_preprocessor - INFO - Preprocessing complete!
+2026-01-14 21:38:11,483 - personalization_engine - INFO - Step 1: Audio loaded and cleaned
+2026-01-14 21:38:11,483 - feature_extractor - INFO - Starting complete feature extraction
+2026-01-14 21:38:11,604 - feature_extractor - INFO - Energy extraction: 1596 frames
+2026-01-14 21:38:11,604 - feature_extractor - INFO -   Energy range: -73.38 to -34.00 dB
+2026-01-14 21:38:11,604 - feature_extractor - INFO - Energy extracted
+2026-01-14 21:38:45,671 - feature_extractor - INFO - Pitch extraction: 508 voiced frames
+2026-01-14 21:38:45,671 - feature_extractor - INFO -   Mean pitch: 118.77 Hz
+2026-01-14 21:38:45,671 - feature_extractor - INFO -   Pitch range: 65.41 - 163.86 Hz
+2026-01-14 21:38:45,671 - feature_extractor - INFO -   Pitch std dev: 17.52 Hz
+2026-01-14 21:38:45,671 - feature_extractor - INFO - Pitch extracted
+2026-01-14 21:38:45,671 - feature_extractor - INFO - Pause detection: 63 pauses found
+2026-01-14 21:38:45,671 - feature_extractor - INFO -   Average pause duration: 0.147 seconds
+2026-01-14 21:38:45,671 - feature_extractor - INFO - Pauses detected
+2026-01-14 21:38:45,671 - feature_extractor - INFO - Speaking rate calculation:
+2026-01-14 21:38:45,683 - feature_extractor - INFO -   Total duration: 37.04 seconds
+2026-01-14 21:38:45,683 - feature_extractor - INFO -   Pause time: 9.26 seconds
+2026-01-14 21:38:45,683 - feature_extractor - INFO -   Speaking time: 27.77 seconds
+2026-01-14 21:38:45,683 - feature_extractor - INFO -   Estimated WPM: 150.0
+2026-01-14 21:38:45,683 - feature_extractor - INFO - Speaking rate calculated
+2026-01-14 21:38:45,688 - feature_extractor - INFO - All features extracted successfully!
+2026-01-14 21:38:45,688 - personalization_engine - INFO - Step 2: Patterns analyzed
+2026-01-14 21:38:45,688 - personalization_engine - INFO - VoiceProfile created for user: user1 (User 1)
+2026-01-14 21:38:45,688 - personalization_engine - INFO - Step 3: Profile created
+2026-01-14 21:38:45,688 - personalization_engine - INFO - Voice profile for User 1 created successfully!
+2026-01-14 21:38:45,692 - personalization_engine - INFO - Synthesis parameters generated for user user1
+2026-01-14 21:38:45,695 - personalization_engine - INFO -   Pitch adjust: 0.79
+2026-01-14 21:38:45,695 - personalization_engine - INFO -   Speed adjust: 1.00
+2026-01-14 21:38:45,695 - personalization_engine - INFO -   Pause duration: 0.147s
+2026-01-14 21:38:45,697 - personalization_engine - INFO - Profile saved to profiles\user1_profile.json
+2026-01-14 21:38:45,697 - personalization_engine - INFO - Profile saved to profiles\user1_profile.json
+2026-01-14 21:38:45,726 - personalization_engine - INFO - VoiceProfile created for user: user1 (User 1)
+2026-01-14 21:38:45,726 - personalization_engine - INFO - Profile loaded for user user1
