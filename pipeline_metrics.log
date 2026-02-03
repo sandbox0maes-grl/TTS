@@ -1,0 +1,7 @@
+2026-01-27 21:59:20,895 - INFO - AudioPreprocessor initialized with sample rate: 22050
+2026-01-27 21:59:20,898 - INFO - Starting preprocessing pipeline for user_audio.mp3
+2026-01-27 21:59:23,671 - INFO - Loaded audio: user_audio.mp3 (39.85s)
+2026-01-27 21:59:24,237 - INFO - Silence removed (Top DB: 20)
+2026-01-27 21:59:24,246 - INFO - Audio normalized
+2026-01-27 21:59:24,257 - INFO - Simple noise reduction applied
+2026-01-27 21:59:24,269 - INFO - Preprocessing complete!
