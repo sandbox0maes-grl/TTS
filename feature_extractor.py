@@ -3,7 +3,11 @@ import librosa
 import logging
 from dataclasses import dataclass, asdict
 import json
-
+import soundfile as sf
+from pathlib import Path
+import logging
+import psutil
+import os
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -19,12 +23,27 @@ class SpeakingPatterns:
     
 
 class FeatureExtractor:
-        
+
     def __init__(self, sr=22050, **kwargs):
-        
-        # sr = sample rate (22050 Hz is standard)        
-        self.sr = sr
+        self.sr = sr  # Sample rate
         logger.info(f"FeatureExtractor initialized with sample rate: {sr}")
+        self.process = psutil.Process(os.getpid())
+        self.process.cpu_percent(interval=None) # Reset counter
+    
+    def log_resources(self, stage):
+        try:
+            # Measure usage since last call
+            cpu_usage = self.process.cpu_percent(interval=None)
+            
+            # RAM in MB
+            mem_bytes = self.process.memory_info().rss
+            mem_mb = mem_bytes / 1024 / 1024
+            
+            logger.info(f"PERF [{stage}] -> CPU: {cpu_usage:.1f}% | RAM: {mem_mb:.2f} MB")
+            
+        except Exception as e:
+            logger.error(f"Could not log resources: {e}")
+               
     
     def extract_energy(self, audio):
         
@@ -170,23 +189,27 @@ class FeatureExtractor:
         
         # Step 1: Extract energy (loudness)
         energy = self.extract_energy(audio)
-        logger.info("Energy extracted")
+        logger.info("Step 1: Energy extracted")
+        self.log_resources("Step 1: Energy extracted")
         
         # Step 2: Extract pitch
         pitch_data = self.extract_pitch(audio)
         if pitch_data is None:
-            logger.error("Failed to extract pitch")
+            logger.error("Step 2: Failed to extract pitch")
             return None
         pitch_values, pitch_stats = pitch_data
-        logger.info("Pitch extracted")
+        logger.info("Step 2: Pitch extracted")
+        self.log_resources("Step 2: Pitch extracted")
         
         # Step 3: Extract pauses
         pauses = self.extract_pauses(audio, energy)
-        logger.info("Pauses detected")
+        logger.info("Step 3: Extract pauses")
+        self.log_resources("Step 3: Extract pauses")
         
         # Step 4: Calculate speaking rate
         wpm = self.calculate_speaking_rate(audio, energy, pauses)
-        logger.info("Speaking rate calculated")
+        logger.info("Step 4: Speaking rate calculated")
+        self.log_resources("Step 4: Speaking rate calculated")
         
         # Compile everything into a pattern object
         patterns = SpeakingPatterns(
@@ -199,6 +222,7 @@ class FeatureExtractor:
         )
         
         logger.info("All features extracted successfully!")
+        self.log_resources("All features extracted successfully!")
         
         return patterns
 

@@ -77,6 +77,18 @@ Record yourself speaking for at least 30 seconds
 
 Save as: `user_audio.mp3`
 
+### Step 3: Create profile
+
+Run the command to generate the user profile json file
+py cli.py create-profile --user-id ip_user_id --user-name "ip_userName" --audio ip_user_audio.mp3
+
+### Step 4: Synthesis of Audio
+
+Run the command to generate the audio
+python cli.py synthesize --user-id ip_user_id --text "Input Text" --output output.wav --model en_US-danny-low.onnx
+
+User can use his own model generated with Piper Studio
+
 ## What Gets Extracted From Your Voice
 
 The system learns and measures:

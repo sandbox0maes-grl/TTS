@@ -1,8 +1,8 @@
 {
   "user_id": "user1",
   "user_name": "User 1",
-  "created_date": "2026-01-27T22:07:23.810720",
-  "last_updated": "2026-01-27T22:07:23.810720",
+  "created_date": "2026-02-05T17:45:09.508500",
+  "last_updated": "2026-02-05T17:45:09.508500",
   "speaking_characteristics": {
     "speaking_rate_wpm": 149.99999999999997,
     "average_pause_duration": 0.1470597127739986,

@@ -76,82 +76,47 @@ flowchart TD;
 
     %% Audio Section
     subgraph Audio_Processing
-        A1["Raw Audio Files"] --> B1["Convert to WAV/Mono"];
-        B1 --> B2["Resample (22050Hz)"];
+        A1["Raw Audio Files"];
+        A1 --> B2["Resample (22050Hz)"];
         B2 --> B3["Silence Trimming"];
         B3 --> B4["Loudness Normalization"];
     end
 
-    %% Text Section
-    subgraph Text_Processing
-        C1["Raw Text Transcripts"] --> C2["Text Cleaning"];
-        C2 --> C3["Normalize Text ($10 to ten dollars)"];
+    %% Feature Extraction
+    subgraph Feature_Extraction
+        B4 --> F1["Processed Audio"];
+        F1 --> F2["Extract energy (loudness)"];
+        F2 --> F3["Extract pitch"];
+        F3 --> F4["Extract pauses"];
+        F4 --> F5["Calculate speaking rate"];
     end
 
-    %% Logic Connections
-    B4 --> D{"Alignment Check"};
-    C3 --> D;
+    %%Emotion Detection
+    subgraph Emotion_Detection
+        F5 --> J1{"Emotion_Detection"}
+        J1 --> J2["user_profile.json"]
+    end
+
+
+    %% Text Section
+    subgraph Text_Input
+        C3["Text Input"];
+    end
+
+    %% Model Section
+    subgraph Model_Section
+        Z3["Model Input (.onnx file)"];
+    end
+
+    %% Synthesize
+    subgraph Synthesize
+      J2 --> D{"Synthesize"};
+      C3 --> D;
+      Z3-->D
+    end
 
     %% Outcomes
-    D -- "Bad Quality" --> E["Discard File"];
-    D -- "Good Match" --> F["Final Formatting (JSON)"];
-
-    F --> G[("READY TTS DATASET")]:::final;
-```
-
-### 2. Feature Extraction Flow (The Math Conversion)
-
-```mermaid
-flowchart TD
-    subgraph TEXT_PATH [Text Processing]
-        direction TB
-        T1["Normalized Text"] --> T2["Phonemization<br/>(e.g. eSpeak-ng)"]
-        T2 -- "h@l'oʊ" --> T3["ID Mapping / Tokenization"]
-        T3 -- "[12, 45, 33, 9]" --> T4["Phoneme Embedding Sequence"]
-    end
-
-    subgraph AUDIO_PATH [Audio Processing]
-        direction TB
-        A1["Processed WAV"] --> A2["STFT / Short-Time<br/>Fourier Transform"]
-        A2 --> A3["Mel-Filterbank"]
-        A3 -- "Visual Heatmap" --> A4["Mel-Spectrogram"]
-    end
-
-    %% Connections to the Model
-    T4 --> M["TTS MODEL TRAINER"]
-    A4 --> M
-
-    %% Styling
-    style T4 fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#000
-    style A4 fill:#ffcccb,stroke:#d9534f,stroke-width:2px,color:#000
-    style M fill:#cce5ff,stroke:#007bff,stroke-width:4px,color:#000
-```
-
-### 3. Voice Characteristic Mapping Diagram (Mindmap)
-
-```mermaid
-mindmap
-  root((TARGET VOICE PROFILE))
-    CLARITY
-      High SNR (Studio Silence >60dB)
-      High Sample Rate (44.1kHz for crispness)
-      Precise Articulation (No mumbling)
-    NATURALNESS
-      Retained natural breaths
-      Varied sentence duration
-      Complex punctuation usage
-    ACCENT
-      Single, region-specific speaker
-      Consistent vowel pronunciation
-      Phonetically balanced script
-    EMOTION RANGE
-      Acted/Perfomed Data (Not just read)
-      High Dynamic Range (Loud vs Soft contrast)
-      Explicit Emotion Tags in metadata
-    SPEAKING STYLE
-      Conversational: Includes fillers , laughter, varying speed
-      Narrative: Steady rhythm, perfect grammar, formal tone
-
+    D --> F["output.mp3"];
 ```
 
 # End

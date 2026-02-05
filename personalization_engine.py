@@ -8,10 +8,14 @@
 import json
 import yaml
 import logging
+import logging
+import psutil
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 import numpy as np
+from typing import Optional
 
 from audio_preprocessor import AudioPreprocessor
 from feature_extractor import FeatureExtractor
@@ -73,33 +77,24 @@ class PersonalizationEngine:
         self.sr = sr
         self.preprocessor = AudioPreprocessor(sr=sr)
         self.feature_extractor = FeatureExtractor(sr=sr)
-        self.voice_profiles = {}
-        
-        logger.info("PersonalizationEngine initialized")
+        self.voice_profiles = {}        
+        logger.info("PersonalizationEngine initialized")        
+        self.process = psutil.Process(os.getpid())
+        self.process.cpu_percent(interval=None) # Reset counter
     
-    # def load_audio_file(self, audio_path):
-        
-    #     logger.info(f"Loading audio file: {audio_path}")
-        
-    #     # Load and preprocess
-    #     audio, sr = self.preprocessor.preprocess(audio_path)
-        
-    #     logger.info(f"Audio loaded: {len(audio)} samples, {sr} Hz sample rate")
-        
-    #     return audio
-    
-    # def analyze_user_audio(self, audio):        
-    #     logger.info("Analyzing user audio patterns")
-        
-    #     patterns = self.feature_extractor.extract_all_features(audio)
-        
-    #     if patterns is None:
-    #         logger.error("Failed to extract patterns from audio")
-    #         return None
-        
-    #     logger.info("User audio analysis complete")
-        
-    #     return patterns
+    def log_resources(self, stage):
+        try:
+            # Measure usage since last call
+            cpu_usage = self.process.cpu_percent(interval=None)
+            
+            # RAM in MB
+            mem_bytes = self.process.memory_info().rss
+            mem_mb = mem_bytes / 1024 / 1024
+            
+            logger.info(f"PERF [{stage}] -> CPU: {cpu_usage:.1f}% | RAM: {mem_mb:.2f} MB")
+            
+        except Exception as e:
+            logger.error(f"Could not log resources: {e}")
     
     def create_voice_profile(self, user_id, user_name, audio_path):
         
@@ -109,15 +104,19 @@ class PersonalizationEngine:
             # Step 1: Load and preprocess audio
             audio,sr = self.preprocessor.preprocess(audio_path)
             logger.info("Step 1: Audio loaded and cleaned")
+            self.log_resources("Step 1: Audio loaded and cleaned")
             
             # Step 2: Analyze audio to extract patterns
             patterns = self.feature_extractor.extract_all_features(audio)
             if patterns is None:
                 return None
             logger.info("Step 2: Patterns analyzed")
+            self.log_resources("Step 2: Patterns analyzed")
             
             # Step 3: Create profile object
             profile = VoiceProfile(user_id=user_id, user_name=user_name)
+            logger.info("Step 3: Profile created")
+            self.log_resources("Step 3: Profile created")
             
             # Step 4: Fill profile with extracted data
             profile.speaking_rate_wpm = patterns.speaking_rate_wpm
@@ -127,7 +126,8 @@ class PersonalizationEngine:
             profile.energy_levels = patterns.energy_levels
             profile.pitch_contour = patterns.pitch_contour
             profile.emotion_profile = self._infer_emotion(profile)
-            logger.info("Step 3: Profile created")
+            logger.info("Step 4: Fill profile with extracted data")
+            self.log_resources("Step 4: Fill profile with extracted data")
             
             # Store profile for later use
             self.voice_profiles[user_id] = profile
@@ -139,34 +139,147 @@ class PersonalizationEngine:
         except Exception as e:
             logger.error(f"Error creating voice profile: {str(e)}")
             raise
-    
-    def get_synthesis_parameters(self, user_id) -> Dict[str, Any]:
         
-        # Get parameters to pass to Piper TTS for personalized synthesis
+    def get_synthesis_parameters(self, user_id: str) -> dict:
+        """
+        Convert a stored VoiceProfile into parameters for Piper TTS.
+
+        Returns a dict with:
+          - pitch_adjust
+          - speaking_rate_adjust
+          - pause_duration
+          - energy_level
+        """
         if user_id not in self.voice_profiles:
-            logger.error(f"No profile found for user {user_id}")
-            return None
-        
+            raise ValueError(f"No profile found for user_id='{user_id}'")
+
         profile = self.voice_profiles[user_id]
-        
-        # Create parameter set that Piper TTS can use
+
+        # Reference pitch for "neutral" (adjust as you like)
+        ref_pitch = 180.0  # Hz
+        mean_pitch = profile.mean_pitch or ref_pitch
+        pitch_adjust = max(0.5, min(2.0, mean_pitch / ref_pitch))
+
+        # Reference speaking rate ~150 WPM
+        ref_wpm = 150.0
+        speaking_rate = profile.speaking_rate_wpm or ref_wpm
+        speaking_rate_adjust = max(0.5, min(2.0, speaking_rate / ref_wpm))
+
+        # Use the learned pause duration directly, with sensible clamp
+        pause_duration = profile.average_pause_duration or 0.5
+        pause_duration = float(max(0.1, min(2.0, pause_duration)))
+
+        # Collapse energy levels to 0–1 scale (simple heuristic)
+        if getattr(profile, "energy_levels", None):
+            avg_energy = sum(profile.energy_levels) / len(profile.energy_levels)
+            # Assume typical range ~[20, 60]
+            energy_level = (avg_energy - 20.0) / (60.0 - 20.0)
+            energy_level = max(0.0, min(1.0, energy_level))
+        else:
+            energy_level = 0.5
+
         params = {
-            'pitch_adjust': self._normalize_pitch_for_synthesis(
-                profile.mean_pitch
-            ),
-            'speaking_rate_adjust': self._normalize_speed_for_synthesis(
-                profile.speaking_rate_wpm
-            ),
-            'pause_duration': profile.average_pause_duration,
-            'energy_level': np.mean(profile.energy_levels) if profile.energy_levels else 0.5,
+            "pitch_adjust": float(pitch_adjust),
+            "speaking_rate_adjust": float(speaking_rate_adjust),
+            "pause_duration": pause_duration,
+            "energy_level": float(energy_level),
         }
-        
-        logger.info(f"Synthesis parameters generated for user {user_id}")
-        logger.info(f"  Pitch adjust: {params['pitch_adjust']:.2f}")
-        logger.info(f"  Speed adjust: {params['speaking_rate_adjust']:.2f}")
-        logger.info(f"  Pause duration: {params['pause_duration']:.3f}s")
-        
+
+        logger.info(
+            "Synthesis parameters for user %s | pitch=%.2f speed=%.2f pause=%.3f energy=%.2f",
+            user_id,
+            params["pitch_adjust"],
+            params["speaking_rate_adjust"],
+            params["pause_duration"],
+            params["energy_level"],
+        )
         return params
+
+    def synthesize_with_profile(
+        self,
+        user_id: str,
+        text: str,
+        output_path: str,
+        model_path: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Load a saved profile, compute parameters, and synthesize personalized audio.
+
+        Args:
+            user_id: User ID (profile JSON must exist as profiles/{user_id}_profile.json)
+            text: Text to synthesize
+            output_path: Where to save the output WAV file
+            model_path: Optional path to Piper model .onnx file
+
+        Returns:
+            Path to generated audio file, or None if failed
+        """
+        import time
+        import psutil
+        from pathlib import Path
+        from piper_synthesizer import PiperSynthesizer
+
+        logger.info(f"Loading profile for user: {user_id}")
+
+        # Get profile (from memory or JSON)
+        profile = self.voice_profiles.get(user_id)
+        if not profile:
+            profile_path = Path(f"./profiles/{user_id}_profile.json")
+            if not profile_path.exists():
+                logger.error(f"Profile not found: {profile_path}")
+                return None
+            profile = self.load_profile(str(profile_path))
+        if not profile:
+            logger.error(f"Failed to load profile for {user_id}")
+            return None
+
+        logger.info(f"Profile loaded: {profile.user_name}")
+
+        # Get TTS parameters
+        params = self.get_synthesis_parameters(user_id)
+        logger.info(
+            "Using parameters: pitch=%.2f, speed=%.2f",
+            params["pitch_adjust"],
+            params["speaking_rate_adjust"],
+        )
+
+        # Init Piper
+        synth = PiperSynthesizer(model_path=model_path)
+        if not synth.is_ready():
+            logger.error("Piper TTS not ready")
+            return None
+
+        # Synthesize
+        t0 = time.perf_counter()
+        audio = synth.synthesize(
+            text=text,
+            pitch_adjust=params["pitch_adjust"],
+            speed_adjust=params["speaking_rate_adjust"],
+        )
+        duration = time.perf_counter() - t0
+        cpu = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory().percent
+        logger.info(
+            "PERF | %-20s | time=%.3fs | cpu=%.1f%% | mem=%.1f%%",
+            "personalization_synthesis",
+            duration,
+            cpu,
+            mem,
+        )
+
+        if audio is None:
+            logger.error("Synthesis returned no audio")
+            return None
+
+        # Save audio
+        output_path = Path(output_path)
+        synth.save_audio(audio, str(output_path))
+        logger.info(
+            "Personalized audio saved | user=%s | file=%s",
+            user_id,
+            output_path,
+        )
+        return str(output_path)
     
     def _normalize_pitch_for_synthesis(self, mean_pitch):
         
@@ -352,8 +465,7 @@ class PersonalizationEngine:
                 "avg_energy": avg_energy,
             },
         }
-
-   
+    
 # MAIN FUNCTION
 
 def main():
