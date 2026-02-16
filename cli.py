@@ -3,6 +3,7 @@ Command-line interface for Piper TTS Personalization Engine.
 Usage:
     py cli.py create-profile --user-id mahesh1 --user-name "Mahesh" --audio user_audio.mp3
     py cli.py synthesize --user-id mahesh1 --text "Hello world test text from onnx local model" --output output.wav --model en_US-danny-low.onnx
+    py cli.py synthesize --user-id mahesh1 --text_file input_TTS.txt --output output.wav --model en_US-danny-low.onnx
 """
 
 import argparse
@@ -92,6 +93,18 @@ def cmd_create_profile(args):
         return False
 
 
+def get_text_from_args(args):
+    """Helper function to extract text from either --text or --text_file"""
+    if hasattr(args, 'text_file') and args.text_file:
+        try:
+            with open(args.text_file, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception as e:
+            print(f"Error reading text file '{args.text_file}': {e}")
+            return None
+    return args.text
+
+
 def cmd_synthesize(args):    
     # Synthesize text using a personalized voice profile.    
     print("\n" + "="*60)
@@ -99,6 +112,12 @@ def cmd_synthesize(args):
     print("="*60)
 
     try:
+        # Resolve the text input (either raw string or from file)
+        actual_text = get_text_from_args(args)
+        if not actual_text:
+            print("Error: No text provided or text file is empty.")
+            return False
+
         # Check if profile exists
         profile_path = Path(f"./profiles/{args.user_id}_profile.json")
         if not profile_path.exists():
@@ -114,7 +133,7 @@ def cmd_synthesize(args):
         print(f"\nSynthesizing with personalized profile...")
         output_file = engine.synthesize_with_profile(
             user_id=args.user_id,
-            text=args.text,
+            text=actual_text,
             output_path=args.output,
             model_path=args.model if hasattr(args, 'model') else None,
         )
@@ -146,6 +165,12 @@ def cmd_compare(args):
     print("="*60)
     
     try:
+        # Resolve the text input (either raw string or from file)
+        actual_text = get_text_from_args(args)
+        if not actual_text:
+            print("Error: No text provided or text file is empty.")
+            return False
+
         # Check if profile exists
         profile_path = Path(f"./profiles/{args.user_id}_profile.json")
         if not profile_path.exists():
@@ -166,7 +191,7 @@ def cmd_compare(args):
         # Generate original (default parameters)
         print(f"\nGenerating ORIGINAL synthesis (default Piper)...")
         original_audio = synthesizer.synthesize(
-            text=args.text,
+            text=actual_text,
             pitch_adjust=1.0,  # default
             speed_adjust=1.0,  # default
         )
@@ -179,7 +204,7 @@ def cmd_compare(args):
         # Generate personalized
         print(f"\nGenerating PERSONALIZED synthesis ({profile.user_name})...")
         personalized_audio = synthesizer.synthesize(
-            text=args.text,
+            text=actual_text,
             pitch_adjust=params['pitch_adjust'],
             speed_adjust=params['speaking_rate_adjust'],
         )
@@ -191,11 +216,15 @@ def cmd_compare(args):
         
         # Generate comparison report
         print(f"\nGenerating comparison report...")
+        
+        # Ensure text in report doesn't get too long if passing a whole file
+        display_text = actual_text if len(actual_text) < 100 else actual_text[:97] + "..."
+        
         report = f"""
             COMPARISON REPORT: Original vs Personalized Synthesis
             =====================================================
 
-            Text: "{args.text}"
+            Text: "{display_text}"
             Profile: {profile.user_name}
             Date: {profile.last_updated}
 
@@ -253,11 +282,14 @@ def main():
         # Create a voice profile
         python cli.py create-profile --user-id john --user-name "John Doe" --audio my_voice.wav
 
-        # Synthesize speech with personalized voice
+        # Synthesize speech with raw text
         python cli.py synthesize --user-id john --text "Hello world" --output output.wav
+        
+        # Synthesize speech from a text file
+        python cli.py synthesize --user-id john --text_file input.txt --output output.wav
 
         # Compare original vs personalized
-        python cli.py compare --user-id john --text "Test sentence" --output-dir ./comparison
+        python cli.py compare --user-id john --text_file input.txt --output-dir ./comparison
                 """
             )
     
@@ -273,17 +305,23 @@ def main():
     # synthesize command
     synth_parser = subparsers.add_parser('synthesize', help='Synthesize text with personalized profile')
     synth_parser.add_argument('--user-id', required=True, help='User ID (profile must exist)')
-    synth_parser.add_argument('--text', required=True, help='Text to synthesize')
     synth_parser.add_argument('--output', default='output.wav', help='Output audio file path')
     synth_parser.add_argument('--model', default=None, help='Path to Piper .onnx model file (optional)')
+    
+    synth_input_group = synth_parser.add_mutually_exclusive_group(required=True)
+    synth_input_group.add_argument('--text', type=str, help='Text to synthesize')
+    synth_input_group.add_argument('--text_file', type=str, help='Path to a .txt file containing text')
     synth_parser.set_defaults(func=cmd_synthesize)
 
     
     # compare command
     compare_parser = subparsers.add_parser('compare', help='Compare original vs personalized synthesis')
     compare_parser.add_argument('--user-id', required=True, help='User ID (profile must exist)')
-    compare_parser.add_argument('--text', required=True, help='Text to use for comparison')
     compare_parser.add_argument('--output-dir', default='./comparison', help='Output directory for comparison files')
+    
+    compare_input_group = compare_parser.add_mutually_exclusive_group(required=True)
+    compare_input_group.add_argument('--text', type=str, help='Text to use for comparison')
+    compare_input_group.add_argument('--text_file', type=str, help='Path to a .txt file containing text')
     compare_parser.set_defaults(func=cmd_compare)
     
     args = parser.parse_args()

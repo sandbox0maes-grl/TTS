@@ -104,20 +104,36 @@ class PiperSynthesizer:
     def is_ready(self) -> bool:
         """Check if Piper is ready for synthesis."""
         return self.piper_ready and self.voice is not None
-
+    
     def synthesize(
         self,
-        text: str,
+        text: Optional[str] = None,
+        text_file: Optional[str] = None,
         pitch_adjust: float = 1.0,
         speed_adjust: float = 1.0,
     ) -> Optional[bytes]:
         """
         Synthesize text to speech with personalization parameters.
+        Accepts either a raw string or a path to a .txt file.
 
         Returns raw WAV bytes.
         """
         if not self.is_ready():
             logger.error("Piper not ready. Cannot synthesize.")
+            return None
+
+        # Handle the "overload" by reading the file if a path is provided
+        if text_file:
+            try:
+                with open(text_file, 'r', encoding='utf-8') as f:
+                    text = f.read()
+            except Exception as e:
+                logger.error(f"Failed to read text file '{text_file}': {e}")
+                return None
+
+        # Ensure we actually have text to process
+        if not text or not text.strip():
+            logger.error("No valid text provided for synthesis.")
             return None
 
         try:
